@@ -1,0 +1,6 @@
+- insert:
+    - id: fsdi
+      name: '@local/fsdi'
+      config:
+        fsdiPath: ""
+        enabledCommands: []

@@ -1,0 +1,5 @@
+name: fsdi
+description: FSDI (Fuck Shit Do It) - Spec-driven development system integration
+config:
+  fsdiPath: ""
+  enabledCommands: []

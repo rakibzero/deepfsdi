@@ -1,0 +1,326 @@
+# ============================================================================
+# UNRESTRICTED CONFIGURATION FOR DEEPSEEK HARNESS
+# ============================================================================
+# This patch file provides FULL PERMISSIONS for all profiles (web, headless, sdk)
+# - No approval prompts
+# - Extended timeouts (2 hours / 7200000ms, extended 4 hours / 14400000ms)
+# - Disabled safety guardrails for local/uncensored models
+# - Full filesystem and execution access
+# - Production mode always on
+#
+# USAGE:
+#   dsh web --patch unrestricted.cordis.patch.yml
+#   dsh headless "task" --patch unrestricted.cordis.patch.yml
+#   dsh --profile sdk --patch unrestricted.cordis.patch.yml
+#
+# Or copy to profile directory:
+#   cp unrestricted.cordis.patch.yml ~/.dsh/profiles/web/cordis.patch.yml
+# ============================================================================
+
+# ============================================================================
+# SANDBOX AND PERMISSIONS: FULL ACCESS MODE
+# ============================================================================
+- id: sandbox-policy
+  config:
+    # OVERRIDE: Full access mode - no restrictions
+    mode: danger-full-access
+    workspaceRoot: !!js process.cwd()
+
+- id: approval
+  config:
+    # OVERRIDE: Never ask for approval
+    policy: never
+
+- id: permission
+  config:
+    presets:
+      read-only:
+        sandbox: danger-full-access
+        approval: never
+      workspace-write:
+        sandbox: danger-full-access
+        approval: never
+      danger-full-access:
+        sandbox: danger-full-access
+        approval: never
+
+# ============================================================================
+# TIMEOUTS: EXTENDED FOR SLOW LOCAL MODELS
+# ============================================================================
+# Strategy: Long timeouts for slow LLMs - 2 HOURS default
+# NO timeout under 2 hours - slow models need time
+- id: bash-sandbox
+  config:
+    # OVERRIDE: 2 HOURS (7200000 ms) for slow models
+    timeoutMs: 7200000
+
+- id: pwsh-sandbox
+  config:
+    # OVERRIDE: 2 HOURS for PowerShell
+    timeoutMs: 7200000
+
+- id: timeout-policy
+  config:
+    # OVERRIDE: 2 HOUR default for everything
+    defaultTimeoutMs: 7200000
+    # Per-tool timeouts - ALL 2 HOURS minimum
+    perToolTimeouts:
+      bash: 7200000
+      pwsh: 7200000
+      lsp: 7200000
+      web_search: 7200000
+      web_fetch: 7200000
+      workflow: 7200000
+      subagent: 7200000
+    # NO auto-retry - just give it time
+    retryWithExtendedTimeout:
+      enabled: false
+
+# ============================================================================
+# SESSION TITLE GENERATION: EXTENDED TIMEOUT
+# ============================================================================
+- id: session-title-llm
+  config:
+    targetWords: 5
+    targetCjkCharacters: 10
+    maxInputBytes: 4096
+    maxOutputTokens: 64
+    # OVERRIDE: 2 HOURS for slow models
+    timeoutMs: 7200000
+
+# ============================================================================
+# WEB TOOLS: EXTENDED TIMEOUTS
+# ============================================================================
+- id: tool-web
+  config:
+    fetch: true
+    # OVERRIDE: 2 HOURS for all web operations
+    searchTimeoutMs: 7200000
+    fetchTimeoutMs: 7200000
+
+# ============================================================================
+# FILESYSTEM SEARCH: EXTENDED TIMEOUTS
+# ============================================================================
+- id: tool-fs-search
+  config:
+    sampleOverCapGlobResults: false
+    maxGlobResults: 100000
+    timeoutMs: 7200000
+
+# ============================================================================
+# SESSION QUERY SEARCH: EXTENDED TIMEOUTS
+# ============================================================================
+- id: tool-session-query
+  config:
+    path: !!js dshHomePath('session-search.db')
+    openAt: startup
+    searchTimeoutMs: 7200000
+
+# ============================================================================
+# TELEMETRY: DISABLED FOR LOCAL MODELS
+# ============================================================================
+- id: session-log-deepseek
+  # OVERRIDE: Disable DeepSeek session log upload
+  disabled: true
+
+- id: session-telemetry-otel
+  # OVERRIDE: Disable OTel telemetry completely
+  disabled: true
+
+# ============================================================================
+# TOOLS: ENABLE NATIVE MODE (NOT PTC)
+# ============================================================================
+- id: tools
+  config:
+    # OVERRIDE: Use native tool execution (faster, no sandbox overhead)
+    mode: native
+
+# ============================================================================
+# SYSTEM PROMPT: MINIMAL RESTRICTIONS
+# ============================================================================
+- id: system-prompt
+  config:
+    # OVERRIDE: No persona restrictions
+    personaPrefix: ''
+
+# ============================================================================
+# PLAN MODE: DISABLED (EXECUTE DIRECTLY)
+# ============================================================================
+- id: plan-mode
+  # OVERRIDE: Disable plan mode for direct execution
+  disabled: true
+
+# ============================================================================
+# REPEAT TOOL REMINDER: DISABLED
+# ============================================================================
+- id: repeat-tool-reminder
+  # OVERRIDE: Don't remind about repeated tool calls
+  disabled: true
+
+# ============================================================================
+# TOOL RESULT PRUNER: DISABLED (KEEP FULL OUTPUT)
+# ============================================================================
+- id: tool-result-pruner
+  # OVERRIDE: Don't prune tool results
+  disabled: true
+
+# ============================================================================
+# COMPACTION: DISABLED (KEEP FULL CONTEXT)
+# ============================================================================
+- id: compaction-basic
+  # OVERRIDE: Disable automatic context compaction
+  disabled: true
+
+# ============================================================================
+# IMAGE OFFLOAD: DISABLED
+# ============================================================================
+- id: image-offload
+  # OVERRIDE: Keep all images in context
+  disabled: true
+
+# ============================================================================
+# SPILL POLICY: INCREASED LIMITS
+# ============================================================================
+- id: spill-policy
+  config:
+    # OVERRIDE: Allow much larger inline content (10x default)
+    maxInlineTokens: 125000
+
+# ============================================================================
+# AGENT DEFAULT MODEL: CONFIGURE FOR LOCAL MODELS
+# ============================================================================
+- id: agent-default-model
+  config:
+    # OVERRIDE: Default to local provider (change as needed)
+    # Supported: deepseek-official, openai, anthropic, custom-openai-compatible
+    provider: custom-openai-compatible
+    model: llama-3.1-70b-instruct
+    # For local models, set base URL via environment or settings
+
+# ============================================================================
+# LLM RETRY: AUTOMATIC RETRY ON UPSTREAM CONNECTION LOSS & TIMEOUTS
+# ============================================================================
+- id: llm-retry
+  disabled: false
+
+- id: llm-deepseek
+  config:
+    retryPolicy:
+      mode: always
+      backoff:
+        initialDelayMs: 300000
+        maxDelayMs: 30000000
+        jitterRatio: 0.2
+
+- id: llm-pi-ai
+  config:
+    retryPolicy:
+      mode: always
+      backoff:
+        initialDelayMs: 3000000
+        maxDelayMs: 30000000
+        jitterRatio: 0.2
+
+# ============================================================================
+# WORKFLOW: EXTENDED LIMITS
+# ============================================================================
+- id: workflow-ptc
+  config:
+    provider: spawn
+    # OVERRIDE: Allow more concurrent workflow agents
+    maxConcurrentAgents: 50
+
+# ============================================================================
+# SUBAGENT: EXTENDED LIMITS
+# ============================================================================
+- id: tool-subagent
+  config:
+    provider: spawn
+    toolName: subagent
+    backgroundMode: continuable
+    # OVERRIDE: No limits on subagent count
+    maxConcurrentSubagents: 100
+
+# ============================================================================
+# FS SEARCH: NO SAMPLING LIMITS
+# ============================================================================
+- id: tool-fs-search
+  config:
+    # OVERRIDE: Don't sample results, show everything
+    sampleOverCapGlobResults: false
+    maxGlobResults: 100000
+
+# ============================================================================
+# AGENT INSTRUCTIONS: INCREASED BUDGET
+# ============================================================================
+- id: agent-instructions
+  config:
+    # OVERRIDE: 10x larger instruction budget (650KB)
+    maxBytes: 655360
+
+# ============================================================================
+# SESSION QUERY: ENABLE FULL-TEXT SEARCH
+# ============================================================================
+- id: session-query-sqlite
+  config:
+    # OVERRIDE: Use persistent database for full-text search
+    path: !!js dshHomePath('session-search.db')
+    openAt: startup
+
+# ============================================================================
+# GOAL ROUNDS: EXTENDED LIMITS
+# ============================================================================
+- id: goal-round-driver
+  config:
+    # OVERRIDE: Allow many more goal rounds
+    maxRounds: 1000
+
+# ============================================================================
+# RALPH TOOL: ENABLED WITH EXTENDED ROUNDS
+# ============================================================================
+- id: tool-ralph
+  disabled: false
+  config:
+    subagentProvider: spawn
+    # OVERRIDE: Allow many more Ralph iteration rounds
+    maxRounds: 1000
+
+# ============================================================================
+# TODO: ALLOW UNLIMITED PARALLEL IN-PROGRESS TASKS
+# ============================================================================
+- id: tool-todo
+  config:
+    # OVERRIDE: No restrictions on parallel tasks
+    allowParallelInProgress: true
+
+# ============================================================================
+# SESSION PROJECTION CACHE: FASTER WRITES
+# ============================================================================
+- id: session-projection-cache
+  config:
+    # OVERRIDE: Write more frequently for better persistence
+    writeEveryEvents: 50
+    writeIntervalMs: 1000
+
+# ============================================================================
+# PLUGIN MANAGER: ALWAYS ENABLED
+# ============================================================================
+- id: plugin-manager
+  disabled: false
+
+# ============================================================================
+# HMR: ALWAYS ENABLED FOR LIVE UPDATES
+# ============================================================================
+- id: hmr
+  disabled: false
+  config:
+    root: []
+
+# ============================================================================
+# 9ROUTER AI GATEWAY: ALWAYS LOADED, TOGGLEABLE
+# ============================================================================
+- id: 9router
+  name: '@local/9routerplugin'
+  config:
+    baseUrl: "http://192.168.0.133:20128"
+    defaultModel: "opencode256"

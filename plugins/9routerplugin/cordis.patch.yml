@@ -1,0 +1,6 @@
+- insert:
+    - id: 9router
+      name: '@local/9routerplugin'
+      config:
+        baseUrl: "http://192.168.0.133:20128"
+        defaultModel: "opencode256"

@@ -1,0 +1,9 @@
+- insert:
+    - id: cloudflare-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: cloudflare
+        transport: stdio
+        command: npx
+        args: ['-y', 'mcp-remote', 'https://mcp.cloudflare.com/mcp']
+        failOnStartupError: false
